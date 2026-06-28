@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python pomodoro.py)",
+      "Bash(tasklist //FI \"WINDOWTITLE eq *Pomodoro*\")",
+      "Bash(python -c \"import os; os.system\\('taskkill //F //IM python.exe 2>nul'\\)\")",
+      "Bash(start python *)",
+      "Bash(python -c \"import py_compile; py_compile.compile\\('pomodoro.py', doraise=True\\); print\\('OK'\\)\")",
+      "Bash(start pythonw *)",
+      "Bash(git --version)",
+      "Bash(where git *)",
+      "Bash(git config *)",
+      "Bash(findstr user *)",
+      "Bash(git init *)",
+      "Bash(git add *)"
+    ]
+  }
+}
