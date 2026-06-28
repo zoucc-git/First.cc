@@ -18,6 +18,8 @@ DEFAULT_SETTINGS = {
     "long_break_minutes": 15,
     "long_break_interval": 4,
     "always_on_top": False,
+    "theme": "sunset",
+    "last_custom_minutes": 30,
 }
 
 # ── Session types ────────────────────────────────────────────────────────────
@@ -25,11 +27,13 @@ DEFAULT_SETTINGS = {
 WORK = "work"
 SHORT_BREAK = "short_break"
 LONG_BREAK = "long_break"
+CUSTOM = "custom"
 
 SESSION_LABELS = {
     WORK: "\U0001f345 工作中",
     SHORT_BREAK: "☕ 短休息",
     LONG_BREAK: "\U0001f330 长休息",
+    CUSTOM: "⏱ 自定义",
 }
 
 SESSION_MINUTE_KEY = {
@@ -38,17 +42,99 @@ SESSION_MINUTE_KEY = {
     LONG_BREAK: "long_break_minutes",
 }
 
-# Color theme — sunset palette
-COLORS = {
-    WORK: "#e0583a",          # sinking sun orange-red
-    SHORT_BREAK: "#f0a500",   # golden hour
-    LONG_BREAK: "#7b4b8a",    # twilight purple
-    "bg": "#fef5e7",          # warm cream
-    "fg": "#3d2b1f",          # dark walnut
-    "button_bg": "#f5e6d3",   # light tan
-    "dot_empty": "#e8d5c4",   # warm beige
-    "dot_filled": "#f7931e",  # bright tangerine
+# ── Color themes ──────────────────────────────────────────────────────────────
+
+THEMES = {
+    "sunset": {
+        WORK: "#e85d4a",        # coral
+        SHORT_BREAK: "#f59e0b", # amber-500
+        LONG_BREAK: "#a855f7",  # purple-500
+        "bg": "#fff7ed",        # orange-50
+        "fg": "#431407",        # orange-950
+        "button_bg": "#ffedd5", # orange-100
+        "dot_empty": "#fed7aa", # orange-200
+        "dot_filled": "#f97316",# orange-500
+        # all buttons in orange/amber family
+        "btn_start": ("#c2410c", "#ea580c"),
+        "btn_pause": ("#d97706", "#f59e0b"),
+        "btn_reset": ("#a16207", "#ca8a04"),
+        "btn_skip": ("#854d0e", "#a16207"),
+    },
+    "ocean": {
+        WORK: "#ef4444",        # red-500
+        SHORT_BREAK: "#06b6d4", # cyan-500
+        LONG_BREAK: "#6366f1",  # indigo-500
+        "bg": "#f0f9ff",        # sky-50
+        "fg": "#082f49",        # sky-950
+        "button_bg": "#e0f2fe", # sky-100
+        "dot_empty": "#bae6fd", # sky-200
+        "dot_filled": "#0ea5e9",# sky-500
+        # all buttons in cool blue/cyan family
+        "btn_start": ("#0284c7", "#38bdf8"),
+        "btn_pause": ("#0891b2", "#06b6d4"),
+        "btn_reset": ("#6366f1", "#818cf8"),
+        "btn_skip": ("#475569", "#64748b"),
+    },
+    "midnight": {
+        WORK: "#f87171",        # red-400
+        SHORT_BREAK: "#34d399", # emerald-400
+        LONG_BREAK: "#818cf8",  # indigo-400
+        "bg": "#0f172a",        # slate-900
+        "fg": "#f1f5f9",        # slate-100
+        "button_bg": "#1e293b", # slate-800
+        "dot_empty": "#334155", # slate-700
+        "dot_filled": "#fbbf24",# amber-400
+        # bright accent buttons on dark background
+        "btn_start": ("#dc2626", "#ef4444"),
+        "btn_pause": ("#059669", "#34d399"),
+        "btn_reset": ("#f59e0b", "#fbbf24"),
+        "btn_skip": ("#4b5563", "#6b7280"),
+    },
+    "forest": {
+        WORK: "#e85d4a",        # coral
+        SHORT_BREAK: "#10b981", # emerald-500
+        LONG_BREAK: "#3b82f6",  # blue-500
+        "bg": "#ecfdf5",        # emerald-50
+        "fg": "#022c22",        # emerald-950
+        "button_bg": "#d1fae5", # emerald-100
+        "dot_empty": "#a7f3d0", # emerald-200
+        "dot_filled": "#059669",# emerald-600
+        # green family + red start as accent
+        "btn_start": ("#dc2626", "#ef4444"),
+        "btn_pause": ("#059669", "#10b981"),
+        "btn_reset": ("#0d9488", "#14b8a6"),
+        "btn_skip": ("#4b5563", "#6b7280"),
+    },
+    "lavender": {
+        WORK: "#e85d4a",        # coral
+        SHORT_BREAK: "#d946ef", # fuchsia-500
+        LONG_BREAK: "#6366f1",  # indigo-500
+        "bg": "#f5f3ff",        # violet-50
+        "fg": "#2e1065",        # violet-950
+        "button_bg": "#ede9fe", # violet-100
+        "dot_empty": "#ddd6fe", # violet-200
+        "dot_filled": "#8b5cf6",# violet-500
+        # purple/pink/fuchsia family
+        "btn_start": ("#9333ea", "#a855f7"),
+        "btn_pause": ("#db2777", "#ec4899"),
+        "btn_reset": ("#c026d3", "#d946ef"),
+        "btn_skip": ("#6b7280", "#9ca3af"),
+    },
 }
+
+THEME_NAMES = {
+    "sunset": "🌅 暖阳",
+    "ocean": "🌊 海洋",
+    "midnight": "🌙 午夜",
+    "forest": "🌲 森林",
+    "lavender": "🌸 薰衣草",
+}
+
+THEME_DISPLAY_TO_KEY = {v: k for k, v in THEME_NAMES.items()}
+
+# Active theme (module-level dict, mutated on theme switch — existing code
+# references COLORS[...] and picks up the change automatically).
+COLORS = dict(THEMES["sunset"])
 
 
 def load_settings():
@@ -114,6 +200,18 @@ class SettingsDialog(tk.Toplevel):
             frame, "长休息间隔（轮）:", self.settings["long_break_interval"], min_val=1, max_val=10
         )
 
+        # Theme selector
+        self.theme_var = tk.StringVar(
+            value=THEME_NAMES.get(self.settings.get("theme", "sunset"), "🌅 夕阳")
+        )
+        ttk.Label(frame, text="配色方案:", width=18).pack(pady=(12, 3))
+        self.theme_combo = ttk.Combobox(
+            frame, textvariable=self.theme_var,
+            values=list(THEME_NAMES.values()),
+            state="readonly", width=16,
+        )
+        self.theme_combo.pack()
+
         # Buttons
         btn_frame = ttk.Frame(frame)
         btn_frame.pack(fill=tk.X, pady=(16, 0))
@@ -139,6 +237,9 @@ class SettingsDialog(tk.Toplevel):
             self.settings["short_break_minutes"] = int(self.spin_short.get())
             self.settings["long_break_minutes"] = int(self.spin_long.get())
             self.settings["long_break_interval"] = int(self.spin_interval.get())
+            # Save theme
+            display = self.theme_var.get()
+            self.settings["theme"] = THEME_DISPLAY_TO_KEY.get(display, "sunset")
         except ValueError:
             messagebox.showwarning("输入错误", "请输入有效的数字。")
             return
@@ -157,6 +258,14 @@ class PomodoroTimer(tk.Tk):
 
         # ── State ──
         self.settings = load_settings()
+
+        # Set active theme from saved settings
+        theme_name = self.settings.get("theme", "sunset")
+        if theme_name not in THEMES:
+            theme_name = "sunset"
+        COLORS.clear()
+        COLORS.update(THEMES[theme_name])
+
         self.session = WORK              # current session type
         self.remaining_sec = self.settings["work_minutes"] * 60
         self.running = False
@@ -164,6 +273,7 @@ class PomodoroTimer(tk.Tk):
         self.work_count = 0              # completed work sessions in current cycle
         self._after_id = None            # tkinter after callback id
         self._start_ts = None            # wall-clock time when current tick started
+        self._saved_session = WORK       # session before entering custom mode
 
         # ── Window setup ──
         self.title("\U0001f345 Pomodoro")
@@ -183,42 +293,18 @@ class PomodoroTimer(tk.Tk):
     # ── UI construction ──────────────────────────────────────────────────
 
     def _build_ui(self):
-        # Main container
-        container = tk.Frame(self, bg=COLORS["bg"], padx=30, pady=20)
-        container.pack(fill=tk.BOTH, expand=True)
+        # Main self.container
+        self.container = tk.Frame(self, bg=COLORS["bg"], padx=30, pady=20)
+        self.container.pack(fill=tk.BOTH, expand=True)
 
-        # Header / session label
-        self.lbl_session = tk.Label(
-            container,
-            text="",
-            font=("Microsoft YaHei UI", 12),
-            bg=COLORS["bg"],
-            fg=COLORS["fg"],
-        )
-        self.lbl_session.pack(pady=(0, 8))
+        # Timer display (Canvas circular)
+        self._build_timer_canvas()
 
-        # Timer display
-        timer_frame = tk.Frame(container, bg=COLORS[WORK], padx=40, pady=24)
-        timer_frame.pack(pady=(0, 16))
-        self.timer_bg = timer_frame  # save ref to update color
-
-        self.lbl_timer = tk.Label(
-            timer_frame,
-            text="25:00",
-            font=("Consolas", 48, "bold"),
-            bg=COLORS[WORK],
-            fg="white",
-        )
-        self.lbl_timer.pack()
-
-        # Progress dots
-        self.dots_frame = tk.Frame(container, bg=COLORS["bg"])
-        self.dots_frame.pack(pady=(0, 16))
-        self.dot_labels = []
-        self._build_progress_dots()
+        # Progress bar (work session progress)
+        self._build_progress_bar()
 
         # Control buttons
-        btn_frame = tk.Frame(container, bg=COLORS["bg"])
+        btn_frame = tk.Frame(self.container, bg=COLORS["bg"])
         btn_frame.pack(pady=(0, 12))
 
         def _btn(text, command, bg, abg):
@@ -231,13 +317,39 @@ class PomodoroTimer(tk.Tk):
             btn.pack(side=tk.LEFT, padx=4)
             return btn
 
-        self.btn_start = _btn("▶ 开始", self.start_timer, "#c97d42", "#d4945a")
-        self.btn_pause = _btn("⏸ 暂停", self.pause_timer, "#e0982a", "#e8a830")
-        self.btn_reset = _btn("↺ 重置", self.reset_timer, "#b8a088", "#c4b098")
-        self.btn_skip = _btn("⏭ 跳过", self.skip_session, "#a09080", "#b0a090")
+        self.btn_start = _btn("▶ 开始", self.start_timer, *COLORS["btn_start"])
+        self.btn_pause = _btn("⏸ 暂停", self.pause_timer, *COLORS["btn_pause"])
+        self.btn_reset = _btn("↺ 重置", self.reset_timer, *COLORS["btn_reset"])
+        self.btn_skip = _btn("⏭ 跳过", self.skip_session, *COLORS["btn_skip"])
 
-        # Bottom bar: always-on-top + settings
-        bottom = tk.Frame(container, bg=COLORS["bg"])
+        # Custom timer row
+        self.custom_frame = tk.Frame(self.container, bg=COLORS["bg"])
+        self.custom_frame.pack(fill=tk.X, pady=(0, 8))
+        tk.Label(
+            self.custom_frame, text="⏱", font=("", 10),
+            bg=COLORS["bg"], fg=COLORS["fg"],
+        ).pack(side=tk.LEFT, padx=(0, 4))
+        self.spin_custom = ttk.Spinbox(
+            self.custom_frame, from_=1, to=999, width=5, justify=tk.CENTER,
+        )
+        self.spin_custom.set(str(self.settings.get("last_custom_minutes", 30)))
+        self.spin_custom.pack(side=tk.LEFT)
+        tk.Label(
+            self.custom_frame, text="分", font=("", 10),
+            bg=COLORS["bg"], fg=COLORS["fg"],
+        ).pack(side=tk.LEFT, padx=(4, 8))
+        self.btn_custom = tk.Button(
+            self.custom_frame, text="⏱ 自定义计时",
+            font=("Microsoft YaHei UI", 9),
+            command=self._start_custom_timer,
+            bg=COLORS["button_bg"], fg=COLORS["fg"],
+            relief=tk.FLAT, cursor="hand2",
+            activebackground=COLORS["dot_filled"],
+        )
+        self.btn_custom.pack(side=tk.LEFT)
+
+        # ---- Bottom bar: always-on-top + settings ----
+        bottom = tk.Frame(self.container, bg=COLORS["bg"])
         bottom.pack(fill=tk.X, pady=(8, 0))
 
         self.var_ontop = tk.BooleanVar(value=self.settings.get("always_on_top", False))
@@ -268,6 +380,63 @@ class PomodoroTimer(tk.Tk):
         self.bind("<r>", lambda e: self.reset_timer())
         self.bind("<s>", lambda e: self.skip_session())
         self.bind("<Control-s>", lambda e: self._open_settings())
+
+    def _build_timer_canvas(self):
+        """Create circular timer display with progress ring."""
+        cvs_size = 260
+        cx = cvs_size // 2
+        cy = 125
+        r = 100
+
+        self.timer_canvas = tk.Canvas(
+            self.container,
+            width=cvs_size, height=cvs_size,
+            bg=COLORS["bg"], highlightthickness=0,
+        )
+        self.timer_canvas.pack(pady=(0, 10))
+
+        # Outer bezel ring (subtle border for depth)
+        self._bezel_ring = self.timer_canvas.create_oval(
+            cx - r - 2, cy - r - 2, cx + r + 2, cy + r + 2,
+            outline=COLORS["dot_empty"], width=1,
+        )
+
+        # Filled circle background
+        self._timer_circle = self.timer_canvas.create_oval(
+            cx - r, cy - r, cx + r, cy + r,
+            fill=COLORS[WORK], outline="",
+        )
+
+        # Track ring (background of progress ring)
+        self._track_ring = self.timer_canvas.create_arc(
+            cx - r + 7, cy - r + 7, cx + r - 7, cy + r - 7,
+            start=90, extent=-360,
+            outline=COLORS["dot_empty"],
+            width=3, style="arc",
+        )
+
+        # Progress ring (fills as time elapses)
+        self._progress_ring = self.timer_canvas.create_arc(
+            cx - r + 7, cy - r + 7, cx + r - 7, cy + r - 7,
+            start=90, extent=0,
+            outline="white",
+            width=3, style="arc",
+        )
+
+        # Timer text (large MM:SS)
+        self._timer_text = self.timer_canvas.create_text(
+            cx, cy - 4,
+            text="25:00",
+            font=("Consolas", 40, "bold"),
+            fill="white", anchor="center",
+        )
+
+        # Session label inside circle
+        self._session_canvas_text = self.timer_canvas.create_text(
+            cx, cy + 36,
+            text="", font=("Microsoft YaHei UI", 11),
+            fill="white", anchor="center",
+        )
 
     # ── Timer logic ──────────────────────────────────────────────────────
 
@@ -300,6 +469,11 @@ class PomodoroTimer(tk.Tk):
         self.running = False
         self.paused = False
         self._cancel_tick()
+        # If coming back from custom mode, restore saved session
+        if self.session == CUSTOM:
+            self.session = self._saved_session
+            self.btn_custom.config(state=tk.NORMAL)
+            self.progress_canvas.pack(pady=(0, 16))
         self.remaining_sec = self._get_session_seconds()
         self._update_display()
         self._update_button_states()
@@ -307,7 +481,11 @@ class PomodoroTimer(tk.Tk):
     def skip_session(self):
         """Skip to the next session immediately."""
         self._cancel_tick()
-        self._complete_session()
+        # In custom mode, skip goes back to saved session
+        if self.session == CUSTOM:
+            self.reset_timer()
+        else:
+            self._complete_session()
 
     def _toggle_start_pause(self):
         """Spacebar handler — start or pause."""
@@ -315,6 +493,43 @@ class PomodoroTimer(tk.Tk):
             self.pause_timer()
         else:
             self.start_timer()
+
+    def _start_custom_timer(self):
+        """Start a custom countdown with user-specified minutes."""
+        # Read spinbox value
+        try:
+            minutes = int(self.spin_custom.get())
+        except ValueError:
+            messagebox.showwarning("输入错误", "请输入有效的数字。")
+            return
+        if minutes < 1:
+            messagebox.showwarning("输入错误", "分钟数不能小于 1。")
+            return
+
+        # Save current session for later restore
+        self._saved_session = self.session
+        # Persist the value
+        self.settings["last_custom_minutes"] = minutes
+        save_settings(self.settings)
+
+        # Cancel any running timer
+        self._cancel_tick()
+
+        # Switch to custom mode
+        self.session = CUSTOM
+        self._custom_total_sec = minutes * 60
+        self.remaining_sec = self._custom_total_sec
+        self.running = False
+        self.paused = False
+        self.btn_custom.config(state=tk.DISABLED)
+
+        # Hide progress bar during custom timer
+        self.progress_canvas.pack_forget()
+
+        self._update_display()
+        self._update_button_states()
+        # Auto-start
+        self.start_timer()
 
     def _schedule_tick(self):
         """Schedule the next 1-second tick."""
@@ -342,6 +557,17 @@ class PomodoroTimer(tk.Tk):
 
     def _complete_session(self):
         """Called when the current session reaches 00:00."""
+        # Custom mode: notify, stay at 00:00, don't auto-advance
+        if self.session == CUSTOM:
+            self.running = False
+            self.paused = False
+            self._cancel_tick()
+            self._notify()
+            self.btn_custom.config(state=tk.NORMAL)
+            self.progress_canvas.pack(pady=(0, 16))
+            self._update_button_states()
+            return
+
         self.running = False
         self.paused = False
         self._cancel_tick()
@@ -349,7 +575,7 @@ class PomodoroTimer(tk.Tk):
         # If this was a work session, increment work count
         if self.session == WORK:
             self.work_count += 1
-            self._update_progress_dots()
+            self._update_progress_bar()
 
         self._notify()
         self._next_session()
@@ -360,7 +586,7 @@ class PomodoroTimer(tk.Tk):
             if self.work_count > 0 and self.work_count % self.settings["long_break_interval"] == 0:
                 self.session = LONG_BREAK
                 self.work_count = 0  # reset cycle
-                self._update_progress_dots()
+                self._update_progress_bar()
             else:
                 self.session = SHORT_BREAK
         else:
@@ -379,36 +605,69 @@ class PomodoroTimer(tk.Tk):
         return self.settings[SESSION_MINUTE_KEY[self.session]] * 60
 
     def _update_display(self):
-        """Refresh the countdown label and session indicator."""
+        """Refresh countdown, progress ring, and session indicator."""
         mins, secs = divmod(self.remaining_sec, 60)
-        self.lbl_timer.config(text=f"{mins:02d}:{secs:02d}")
-        self.lbl_session.config(text=SESSION_LABELS[self.session])
+        self.timer_canvas.itemconfig(self._timer_text, text=f"{mins:02d}:{secs:02d}")
+        self.timer_canvas.itemconfig(
+            self._session_canvas_text, text=SESSION_LABELS[self.session]
+        )
 
-        # Update timer background color to match session
-        color = COLORS[self.session]
-        self.timer_bg.config(bg=color)
-        self.lbl_timer.config(bg=color)
+        # Update progress ring (fills as time elapses)
+        if self.session == CUSTOM:
+            # Use saved custom total for progress calculation
+            total = getattr(self, "_custom_total_sec", self.remaining_sec)
+        else:
+            total = self._get_session_seconds()
+        elapsed = 1 - (self.remaining_sec / total) if total > 0 else 1
+        self.timer_canvas.itemconfig(self._progress_ring, extent=-360 * elapsed)
 
-    def _build_progress_dots(self):
-        """Create or recreate all progress dot labels."""
-        for d in self.dot_labels:
-            d.destroy()
-        self.dot_labels.clear()
-        max_dots = self.settings["long_break_interval"]
-        for _ in range(max_dots):
-            dot = tk.Label(
-                self.dots_frame, text="●", font=("", 16),
-                bg=COLORS["bg"], fg=COLORS["dot_empty"],
+        # Circle color — CUSTOM falls back to WORK color
+        color = COLORS.get(self.session, COLORS[WORK])
+        self.timer_canvas.itemconfig(self._timer_circle, fill=color)
+
+    def _build_progress_bar(self):
+        """Create progress bar showing completed work sessions."""
+        # Destroy old canvas to avoid stacking on theme switch
+        if hasattr(self, "progress_canvas"):
+            self.progress_canvas.destroy()
+        max_seg = self.settings["long_break_interval"]
+        bar_w = 200
+        gap = 4
+        seg_w = (bar_w - (max_seg - 1) * gap) / max_seg
+        h = 10
+
+        self.progress_canvas = tk.Canvas(
+            self.container,
+            width=bar_w, height=h + 12,
+            bg=COLORS["bg"], highlightthickness=0,
+        )
+        self.progress_canvas.pack(pady=(0, 16))
+
+        # Background track
+        self.progress_canvas.create_rectangle(
+            0, 6, bar_w, h + 6,
+            fill=COLORS["dot_empty"],
+            outline="", width=0,
+        )
+
+        self._progress_segments = []
+        for i in range(max_seg):
+            x1 = i * (seg_w + gap)
+            x2 = x1 + seg_w
+            seg = self.progress_canvas.create_rectangle(
+                x1, 6, x2, h + 6,
+                fill=COLORS["dot_empty"],
+                outline=COLORS["bg"], width=1,
             )
-            dot.pack(side=tk.LEFT, padx=3)
-            self.dot_labels.append(dot)
-        self._update_progress_dots()
+            self._progress_segments.append(seg)
+        self._update_progress_bar()
 
-    def _update_progress_dots(self):
-        """Refresh dot colors to reflect completed work sessions."""
-        for i, dot in enumerate(self.dot_labels):
-            dot.config(
-                fg=COLORS["dot_filled"] if i < self.work_count else COLORS["dot_empty"]
+    def _update_progress_bar(self):
+        """Refresh segment colors to match completed work count."""
+        for i, seg in enumerate(self._progress_segments):
+            self.progress_canvas.itemconfig(
+                seg,
+                fill=COLORS["dot_filled"] if i < self.work_count else COLORS["dot_empty"],
             )
 
     def _update_button_states(self):
@@ -422,6 +681,44 @@ class PomodoroTimer(tk.Tk):
         else:
             self.btn_start.config(state=tk.NORMAL, text="▶ 开始")
             self.btn_pause.config(state=tk.DISABLED)
+
+    def _apply_theme(self):
+        """Update all existing widgets to match the active theme colors."""
+        c = COLORS
+        self.configure(bg=c["bg"])
+        self.container.configure(bg=c["bg"])
+        # Canvas timer
+        self.timer_canvas.configure(bg=c["bg"])
+        self.timer_canvas.itemconfig(self._timer_circle, fill=c.get(self.session, c[WORK]))
+        self.timer_canvas.itemconfig(self._track_ring, outline=c["dot_empty"])
+        self.timer_canvas.itemconfig(self._bezel_ring, outline=c["dot_empty"])
+        # Canvas progress bar
+        self.progress_canvas.configure(bg=c["bg"])
+        self._update_progress_bar()
+        # Buttons
+        bg, abg = c["btn_start"]
+        self.btn_start.configure(bg=bg, activebackground=abg)
+        bg, abg = c["btn_pause"]
+        self.btn_pause.configure(bg=bg, activebackground=abg)
+        bg, abg = c["btn_reset"]
+        self.btn_reset.configure(bg=bg, activebackground=abg)
+        bg, abg = c["btn_skip"]
+        self.btn_skip.configure(bg=bg, activebackground=abg)
+        # Bottom bar
+        self.cb_ontop.configure(
+            bg=c["bg"], fg=c["fg"], selectcolor=c["bg"], activebackground=c["bg"]
+        )
+        self.btn_settings.configure(
+            bg=c["bg"], fg=c["fg"], activebackground=c["button_bg"]
+        )
+        # Custom frame (guard in case theme is applied before _build_ui)
+        if hasattr(self, "custom_frame"):
+            for child in self.custom_frame.winfo_children():
+                if isinstance(child, tk.Label):
+                    child.configure(bg=c["bg"], fg=c["fg"])
+                elif isinstance(child, tk.Button):
+                    child.configure(bg=c["button_bg"], fg=c["fg"],
+                                    activebackground=c["dot_filled"])
 
     def _notify(self):
         """Alert the user that a session has ended."""
@@ -468,8 +765,13 @@ class PomodoroTimer(tk.Tk):
     def _on_settings_saved(self, new_settings):
         """Callback after settings dialog saves."""
         self.settings = new_settings
+        # Apply theme if changed
+        theme = self.settings.get("theme", "sunset")
+        COLORS.clear()
+        COLORS.update(THEMES.get(theme, THEMES["sunset"]))
+        self._apply_theme()
         self.reset_timer()
-        self._build_progress_dots()
+        self._build_progress_bar()
 
     def _center_window(self):
         """Position the window at screen center."""
